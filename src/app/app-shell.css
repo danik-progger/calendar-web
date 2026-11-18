@@ -1,0 +1,21 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--ink);
+}
+.app-shell__toolbar {
+  position: relative;
+  flex: 0 0 var(--toolbar-height);
+  z-index: 20;
+  background: #fff;
+}
+.app-shell__content {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: none;
+}

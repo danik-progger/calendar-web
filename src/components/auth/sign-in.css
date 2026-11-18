@@ -1,0 +1,57 @@
+.sign-in-screen {
+  display: grid;
+  min-height: 100dvh;
+  padding: 24px;
+  place-items: center;
+  background: #fff;
+  color: var(--ink);
+}
+
+.sign-in-screen__content {
+  width: min(100%, 360px);
+  padding: 28px;
+  text-align: center;
+}
+
+.sign-in-screen h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.sign-in-screen button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.sign-in-screen p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.sign-in-screen button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 20px;
+  padding: 8px 12px;
+  border: 1px solid #747775;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f1f1f;
+  font-weight: 600;
+}
+
+.sign-in-screen .sign-in-screen__error {
+  color: #932e21;
+}
+
+.sign-in-screen .sign-in-screen__error:empty {
+  margin: 0;
+}
+
+.sign-in-screen button:hover:not(:disabled) {
+  background: #f5f5f5;
+}

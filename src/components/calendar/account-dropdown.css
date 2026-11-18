@@ -1,0 +1,61 @@
+.account-trigger {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f3f3f4;
+  color: #606877;
+}
+
+.account-trigger:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.account-dropdown {
+  inset: var(--toolbar-height) var(--toolbar-right-padding) auto auto;
+  width: min(200px, calc(100% - 24px));
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+}
+
+.account-dropdown__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-dropdown__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+button.account-dropdown__row:hover {
+  background: #f3f3f4;
+}
+
+.account-dropdown__row > span:last-child {
+  overflow-wrap: anywhere;
+}
+
+button.account-dropdown__row:focus-visible {
+  outline-offset: -2px;
+}
