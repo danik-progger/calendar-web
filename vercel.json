@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "bun run build",
+  "outputDirectory": "dist",
+  "routes": [
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "${BFF_URL}/api/auth/$1",
+      "env": ["BFF_URL"]
+    },
+    { "handle": "filesystem" },
+    { "src": "/((?!api/|assets/).*)", "dest": "/index.html" }
+  ]
+}
