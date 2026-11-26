@@ -5,7 +5,7 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  background: #3036404d;
+  background: var(--modal-overlay);
 }
 
 .event-editor {
@@ -15,9 +15,9 @@
   overflow: visible;
   border: 0;
   border-radius: 8px;
-  background: #fff;
-  color: #626b7b;
-  box-shadow: 0 24px 64px #20273326;
+  background: var(--surface);
+  color: var(--text-secondary);
+  box-shadow: 0 24px 64px var(--event-shadow);
 }
 
 .event-editor__title-row {
@@ -28,10 +28,10 @@
   width: 100%;
   padding: 0;
   border: 0;
-  background: transparent;
-  color: #303744;
+  background: var(--clear);
+  color: var(--text-strong);
   font-size: 20px;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -49,7 +49,7 @@
   min-height: 32px;
   align-items: center;
   gap: 10px;
-  color: #737780;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
 }
@@ -59,8 +59,8 @@
 .event-editor__field-row select {
   padding: 5px 2px;
   border: 0;
-  background: transparent;
-  color: #626b7b;
+  background: var(--clear);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
 }
@@ -86,7 +86,7 @@
   min-height: 32px;
 }
 .event-editor__time-separator {
-  color: #a0a5ae;
+  color: var(--placeholder);
 }
 .event-editor__calendar-row select {
   min-width: 0;
@@ -107,7 +107,7 @@
   margin: 0;
   border: 0;
   border-radius: 6px;
-  background: transparent;
+  background: var(--clear);
   transition: none;
   cursor: pointer;
 }
@@ -122,7 +122,7 @@
 
 .event-editor__check {
   pointer-events: none;
-  color: #858585;
+  color: var(--text-secondary);
   display: grid;
   place-items: center;
   width: 16px;
@@ -131,7 +131,7 @@
 }
 
 .event-editor__all-day input:checked + .event-editor__check {
-  color: white;
+  color: var(--text-on-solid);
 }
 
 .event-editor__color {
@@ -170,15 +170,15 @@
   padding: 0;
   resize: none;
   border: 0;
-  background: transparent;
-  color: #737780;
+  background: var(--clear);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   line-height: 1.45;
 }
 
 .event-editor__notes::placeholder {
-  color: #737780;
+  color: var(--text-secondary);
 }
 
 .event-editor__footer {
@@ -188,36 +188,26 @@
   padding: 10px 16px;
 }
 
-.event-editor__footer button {
-  padding: 7px 12px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #747c89;
-  font-weight: 600;
-  font-size: 13px;
-}
-
 .event-editor__footer .event-editor__delete {
   margin-right: auto;
 }
 
 .event-editor__footer .event-editor__save {
-  background: #303744;
-  color: #fff;
+  background: var(--text-strong);
+  color: var(--text-on-solid);
 }
 
 .event-editor__error {
   margin: 0;
   padding: 8px 26px;
-  color: var(--accent);
+  color: var(--error);
 }
 
 .event-editor input:focus-visible,
 .event-editor select:focus-visible,
 .event-editor textarea:focus-visible,
 .event-editor button:focus-visible {
-  outline: 2px solid #9ca8b7;
+  outline: 2px solid var(--control-focus);
   outline-offset: 2px;
 }
 
@@ -257,15 +247,15 @@
   padding: 5px 2px;
   border: 0;
   border-radius: 4px;
-  background: transparent;
-  color: #737780;
+  background: var(--clear);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
 .event-editor .time-picker input:focus-visible {
-  outline: 2px solid #9ca8b7;
+  outline: 2px solid var(--control-focus);
   outline-offset: 1px;
 }
 .picker {
@@ -274,8 +264,8 @@
 .picker__trigger {
   border: 0;
   border-radius: 4px;
-  background: transparent;
-  color: #737780;
+  background: var(--clear);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -295,7 +285,7 @@
 .date-picker__trigger .animated-icon {
   width: 16px;
   height: 16px;
-  color: #989da7;
+  color: var(--placeholder);
 }
 .calendar-picker__trigger {
   display: flex;
@@ -305,7 +295,7 @@
 }
 .calendar-picker__trigger .animated-icon {
   margin-left: -6px;
-  color: #989da7;
+  color: var(--placeholder);
 }
 .picker__panel {
   position: absolute;
@@ -313,42 +303,31 @@
   top: calc(100% + 5px);
   left: 0;
   padding: 6px;
-  border: 1px solid #e3e4e7;
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 24px #20273326;
-  color: #626b7b;
+  background: var(--surface);
+  box-shadow: 0 8px 24px var(--event-shadow);
+  color: var(--text-secondary);
   font-size: 12px;
 }
-.picker__option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: #626b7b;
-  text-align: left;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-.picker__option:hover,
-.picker__option:focus-visible,
 .date-picker__grid button:hover {
-  background: #f0f1f3;
+  background: var(--hover);
 }
-.picker__option[data-selected="true"],
-.date-picker__grid button[data-selected="true"] {
-  background: #e9ebee;
-  color: #303744;
-  font-weight: 600;
+.time-picker__list,
+.calendar-picker__panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 5px);
+  left: 0;
 }
 .time-picker__list {
+  display: flex;
+  flex-direction: column;
   width: 104px;
-  max-height: 180px;
+  max-height: min(226px, 50dvh);
+  font-variant-numeric: tabular-nums;
+}
+.time-picker__options {
+  position: relative;
   overflow-y: auto;
 }
 .calendar-picker__panel {
@@ -369,7 +348,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 2px 8px;
-  color: #303744;
+  color: var(--text-strong);
   font-weight: 600;
 }
 .date-picker__navigation {
@@ -383,8 +362,8 @@
   padding: 0;
   border: 0;
   border-radius: 5px;
-  background: transparent;
-  color: #626b7b;
+  background: var(--clear);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 .date-picker__navigation button {
@@ -406,10 +385,15 @@
 .date-picker__grid span {
   display: grid;
   place-items: center;
-  color: #9a9fa7;
+  color: var(--placeholder);
 }
 .date-picker__grid button[data-outside="true"] {
-  color: #aeb3bb;
+  color: var(--outside-month);
+}
+.date-picker__grid button[data-selected="true"] {
+  background: var(--text-strong);
+  color: var(--surface);
+  font-weight: 600;
 }
 @media (max-height: 500px) {
   .event-editor {

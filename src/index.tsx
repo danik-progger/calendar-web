@@ -32,28 +32,22 @@ function CalendarRoot() {
       <Match when={session() === undefined}>
         <main class="sign-in-screen">
           <section class="sign-in-screen__content">
-            <p role="status">Couldn’t check your session.</p>
+            <p class="error-message" role="status">
+              Couldn’t check your session.
+            </p>
             <button type="button" onClick={() => void refetch()}>
               Try again
             </button>
           </section>
         </main>
       </Match>
-      <Match when={session()?.user} keyed>
-        {(user) => (
-          <App
-            userId={user.id}
-            token={session()?.session.token}
-            email={user.email}
-            onLogout={signOut}
-          />
+      <Match when={session()} keyed>
+        {(active) => (
+          <App token={active.session.token} email={active.user.email} onLogout={signOut} />
         )}
       </Match>
     </Switch>
   );
 }
 
-const localPreview =
-  ["127.0.0.1", "localhost", "[::1]"].includes(window.location.hostname) &&
-  new URLSearchParams(window.location.search).get("demo") === "1";
-render(() => (localPreview ? <App /> : <CalendarRoot />), document.getElementById("root")!);
+render(() => <CalendarRoot />, document.getElementById("root")!);

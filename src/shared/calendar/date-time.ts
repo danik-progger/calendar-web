@@ -46,11 +46,6 @@ export function formatHourLabel(minute: MinuteOfDay): string {
 export function formatTimeRange(startMinute: MinuteOfDay, endMinute: MinuteOfDay): string {
   return `${formatTime(startMinute)} – ${formatTime(endMinute)}`;
 }
-export function formatDuration(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return `${hours ? `${hours}h` : ""}${remainder ? String(remainder).padStart(2, "0") : ""}`;
-}
 export function formatDayLabel(key: DateKey): { weekday: string; dayNumber: number } {
   const date = dateFromKey(key);
   return { weekday: dayFormatter.format(date), dayNumber: date.getDate() };

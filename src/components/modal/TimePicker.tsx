@@ -1,5 +1,5 @@
-import { Motion, Presence } from "solid-motionone";
-import { createEffect, createSignal, For, onCleanup } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
+import { Dropdown, DropdownButton } from "../dropdown/Dropdown";
 
 export function TimePicker(props: {
   value: string;
@@ -64,45 +64,35 @@ export function TimePicker(props: {
           }
         }}
       />
-      <Presence>
-        {open() && (
-          <Motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 0.18,
-            }}
-            class="picker__panel time-picker__list"
-            role="group"
-            aria-label={`${props.label} suggestions`}
+      <Show when={open()}>
+        <Dropdown class="time-picker__list" role="group" aria-label={`${props.label} suggestions`}>
+          <div
+            class="time-picker__options"
             ref={(element) =>
               queueMicrotask(() => {
                 const [hours, minutes] = props.value.split(":").map(Number);
                 const index = Math.min(47, Math.floor((hours * 60 + minutes) / 30));
-                const item = element.children.item(index) as HTMLElement | null;
-                if (item) element.scrollTop = item.offsetTop - element.offsetTop;
+                const item = element.children.item(index);
+                if (item instanceof HTMLElement) element.scrollTop = item.offsetTop;
               })
             }
           >
             <For each={options}>
               {(option) => (
-                <button
-                  type="button"
-                  class="picker__option"
-                  data-selected={option === props.value}
+                <DropdownButton
+                  aria-pressed={option === props.value}
                   onClick={() => {
                     props.onChange(option);
                     setOpen(false);
                   }}
                 >
                   {option}
-                </button>
+                </DropdownButton>
               )}
             </For>
-          </Motion.div>
-        )}
-      </Presence>
+          </div>
+        </Dropdown>
+      </Show>
     </div>
   );
 }

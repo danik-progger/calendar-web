@@ -2,53 +2,21 @@
   position: absolute;
   --checkbox-border: var(--event-color);
   --checkbox-color: var(--event-color);
-  left: 0;
-  right: 4px;
+  left: var(--event-column-offset, 0%);
+  width: calc(var(--event-column-width, 100%) - min(4px, var(--event-column-width, 100%) / 2));
   min-height: 35px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--event-color) 24%, #fff);
+  background: color-mix(in srgb, var(--event-color) 24%, var(--surface));
   border: 0;
   border-radius: 8px;
-  padding: 4px 8px;
-  color: color-mix(in srgb, var(--event-color) 82%, #263342);
+  padding: 4px min(8px, calc(var(--event-column-width, 100%) / 4));
+  color: color-mix(in srgb, var(--event-color) 82%, var(--text-strong));
   box-shadow: none;
   user-select: none;
   touch-action: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  animation: event-fade-in 180ms ease-out both;
-}
-.calendar-board[data-event-entry="true"] .event-card {
-  animation: event-card-enter var(--event-enter-duration) cubic-bezier(0.22, 1, 0.36, 1)
-    var(--event-enter-delay) backwards;
-}
-@keyframes event-fade-in {
-  from {
-    opacity: 0;
-  }
-}
-.calendar-board .event-card[data-exiting="true"] {
-  pointer-events: none;
-  animation: event-fade-out 180ms ease-in forwards;
-}
-@keyframes event-fade-out {
-  to {
-    opacity: 0;
-  }
-}
-@keyframes event-card-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.92);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .calendar-board[data-event-entry="true"] .event-card,
-  .event-card,
-  .calendar-board .event-card[data-exiting="true"] {
-    animation: none;
-  }
 }
 .event-card[data-compact="true"] {
   display: flex;
@@ -57,17 +25,39 @@
   padding-top: 2px;
   padding-bottom: 2px;
 }
-.calendar-board__all-day .event-card {
+.event-card[data-all-day="true"] {
   position: relative;
   left: auto;
-  right: auto;
+  width: auto;
   top: auto;
   height: auto;
   min-height: 24px;
   padding: 2px 10px;
   display: flex;
   align-items: flex-start;
-  background: color-mix(in srgb, var(--event-color) 28%, #fff);
+  background: color-mix(in srgb, var(--event-color) 28%, var(--surface));
+}
+.event-card__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.event-card__copy[aria-hidden="true"] {
+  position: absolute;
+  inset: 0;
+  padding: inherit;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .event-card {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease;
+  }
+  .event-card__time {
+    transition: color 180ms ease;
+  }
 }
 .event-card__time {
   display: block;
@@ -75,6 +65,8 @@
   font-size: 10px;
   font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .event-card__title {
   font-weight: 600;
@@ -94,12 +86,12 @@
   height: 6px;
   padding: 0;
   border: 0;
-  background: transparent;
+  background: var(--clear);
   cursor: ns-resize;
   touch-action: none;
 }
 .event-card__resize-handle:focus-visible {
-  outline: 1px solid var(--event-color);
+  outline: 2px solid var(--control-focus);
   outline-offset: -2px;
 }
 .event-card[data-event-id] {
@@ -116,7 +108,7 @@
   pointer-events: none;
   animation: none;
   border-style: dashed;
-  box-shadow: 0 8px 18px #3b342920;
+  box-shadow: 0 8px 18px var(--event-shadow);
 }
 .event-card[data-completed="true"] {
   opacity: 0.72;

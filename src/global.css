@@ -1,10 +1,24 @@
 :root {
   --surface: #fff;
-  --panel: #f4f0e9;
-  --ink: #38342f;
-  --muted: #9b958a;
-  --line: #e3ded4;
+  --text-strong: #303744;
+  --text-secondary: #626b7b;
+  --placeholder: #a0a5ae;
   --accent: #ff6b50;
+  --control-focus: var(--text-strong);
+  --error: #a83926;
+  --hover: #f5f5f5;
+  --event-shadow: #3b342920;
+  --text-on-solid: var(--surface);
+  --clear: transparent;
+  --checkbox-check-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='m1.5 5 3 3 6-6' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --calendar-grid-line: #f4f4f5;
+  --modal-overlay: #3036404d;
+  --outside-month: #aeb3bb;
+  --hour-label: #5f636e;
+  --calendar-birthdays: #f2ad3d;
+  --calendar-personal: #e86bb5;
+  --calendar-work: #7283db;
+  --calendar-health: #42beb9;
   --toolbar-height: 56px;
   --time-rail: 52px;
   --day-header-height: 42px;
@@ -23,7 +37,7 @@ body,
   margin: 0;
   width: 100%;
   height: 100%;
-  font-family: "Avenir Next", Avenir, ui-sans-serif, sans-serif;
+  font-family: "Mulish", ui-sans-serif, sans-serif;
   font-size: 13px;
   background: var(--surface);
 }
@@ -39,19 +53,23 @@ input[type="checkbox"] {
   appearance: none;
   height: 1lh;
   width: 1lh;
-  border: 1.5px solid var(--checkbox-border, #858585);
+  border: 1.5px solid var(--checkbox-border, var(--text-secondary));
   border-radius: 6px;
-  background: #fff;
+  background: var(--surface);
   margin: 0;
 }
 
 input[type="checkbox"]:checked {
   border-color: var(--checkbox-color, var(--accent));
   background-color: var(--checkbox-color, var(--accent));
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='m1.5 5 3 3 6-6' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: var(--checkbox-check-image);
   background-position: center;
   background-repeat: no-repeat;
   background-size: 9px 8px;
+}
+
+.error-message {
+  color: var(--error);
 }
 
 .squircle {
@@ -61,13 +79,6 @@ input[type="checkbox"]:checked {
   overflow: hidden;
 }
 
-.apple-shape {
-  width: min(200px);
-  aspect-ratio: 1;
-
-  background: blue;
-}
-
 button {
   cursor: pointer;
 }
@@ -75,6 +86,25 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.action-button {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--clear);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.action-button:where(:enabled:hover) {
+  background: var(--hover);
+}
+
+.action-button:focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
 }
 
 .animated-icon {

@@ -11,10 +11,8 @@ export function resolveTimedDropMinute(
   duration: number,
 ): MinuteOfDay {
   const raw = pixelToMinute(pointerY - zoneTop, hourHeight) - grabOffset;
-  return clampTimeRange(
-    snapMinute(raw, DRAG_SNAP_MINUTES),
-    snapMinute(raw, DRAG_SNAP_MINUTES) + duration,
-  ).startMinute;
+  const start = snapMinute(raw, DRAG_SNAP_MINUTES);
+  return clampTimeRange(start, start + duration).startMinute;
 }
 export function resolveTimedResizeEndMinute(
   originalEndMinute: number,

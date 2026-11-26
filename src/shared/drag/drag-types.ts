@@ -1,6 +1,5 @@
-import type { CalendarItem, ItemId, PlacementTarget } from "../calendar/calendar-item";
+import type { ItemId, PlacementTarget } from "../calendar/calendar-item";
 export type PointerPoint = Readonly<{ clientX: number; clientY: number }>;
-export type DropTarget = PlacementTarget;
 export type DragSession =
   | { phase: "idle" }
   | {
@@ -14,8 +13,7 @@ export type DragSession =
       phase: "dragging";
       itemId: ItemId;
       pointerId: number;
-      target: DropTarget | null;
+      target: PlacementTarget | null;
       grabOffsetMinute: number;
     };
 export type ItemPointerEvent = PointerEvent & { currentTarget: HTMLElement };
-export type DragItemGetter = (itemId: ItemId) => CalendarItem | undefined;

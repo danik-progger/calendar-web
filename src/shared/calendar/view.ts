@@ -18,13 +18,9 @@ export type CalendarViewOptions = Readonly<{ now: () => Date; initialViewportWid
 export type CalendarView = Readonly<{
   mode: Accessor<ViewMode>;
   isMobile: Accessor<boolean>;
-  anchorDate: Accessor<DateKey>;
   days: Accessor<readonly CalendarDay[]>;
   monthLabel: Accessor<string>;
-  todayKey: Accessor<DateKey>;
   currentMinute: Accessor<MinuteOfDay>;
-  currentTimeLabel: Accessor<string>;
-  boardShift: Accessor<"forward" | "backward" | null>;
   setMode(mode: ViewMode): void;
   setViewportWidth(width: number): void;
   goToday(): void;
@@ -41,8 +37,6 @@ export function createCalendarView(options: CalendarViewOptions): CalendarView {
     initialMode === "week" ? mondayOf(initialDate) : initialDate,
   );
   const [now, setNow] = createSignal(options.now());
-  const [boardShift, setBoardShift] = createSignal<"forward" | "backward" | null>(null);
-  let shiftTimer: ReturnType<typeof setTimeout> | undefined;
   let wheelDistance = 0;
   let wheelTimer: ReturnType<typeof setTimeout> | undefined;
   const clockTimer =
@@ -65,10 +59,6 @@ export function createCalendarView(options: CalendarViewOptions): CalendarView {
   });
   const monthLabel = createMemo(() => formatMonthLabel(anchorDate()));
   const currentMinute = createMemo(() => now().getHours() * 60 + now().getMinutes());
-  const currentTimeLabel = createMemo(
-    () =>
-      `${String(now().getHours()).padStart(2, "0")}:${String(now().getMinutes()).padStart(2, "0")}`,
-  );
   const setMode = (next: ViewMode) => {
     if (isMobile() && next !== "day") return;
     if (next === "week" && mode() !== "week") setAnchorDate((key) => mondayOf(key));
@@ -76,9 +66,6 @@ export function createCalendarView(options: CalendarViewOptions): CalendarView {
   };
   const shiftDays = (amount: number) => {
     setAnchorDate((key) => addDays(key, amount));
-    setBoardShift(amount > 0 ? "forward" : "backward");
-    if (shiftTimer) globalThis.clearTimeout(shiftTimer);
-    shiftTimer = globalThis.setTimeout(() => setBoardShift(null), 180);
   };
   const pushHorizontalWheel = (delta: number) => {
     wheelDistance += delta;
@@ -94,13 +81,9 @@ export function createCalendarView(options: CalendarViewOptions): CalendarView {
   return {
     mode,
     isMobile,
-    anchorDate,
     days,
     monthLabel,
-    todayKey,
     currentMinute,
-    currentTimeLabel,
-    boardShift,
     setMode,
     setViewportWidth(width) {
       setIsMobile(width < 720);
@@ -116,7 +99,6 @@ export function createCalendarView(options: CalendarViewOptions): CalendarView {
     shiftDays,
     pushHorizontalWheel,
     dispose() {
-      if (shiftTimer) globalThis.clearTimeout(shiftTimer);
       if (wheelTimer) globalThis.clearTimeout(wheelTimer);
       if (clockTimer) globalThis.clearInterval(clockTimer);
     },

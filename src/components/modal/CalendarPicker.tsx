@@ -1,7 +1,7 @@
-import { createSignal, For, onCleanup } from "solid-js";
+import { createSignal, For, onCleanup, Show } from "solid-js";
+import { Dropdown, DropdownButton } from "../dropdown/Dropdown";
 import { AnimatedIcon } from "../icons/AnimatedIcon";
 import { ChevronDown } from "@animateicons/vanilla/lucide";
-import { Motion, Presence } from "solid-motionone";
 import type { CalendarDefinition, CalendarId } from "../../shared/calendar/calendars";
 
 export function CalendarPicker(props: {
@@ -48,44 +48,29 @@ export function CalendarPicker(props: {
         <span>{selected()?.label}</span>
         <AnimatedIcon icon={ChevronDown} size={13} />
       </button>
-      <Presence>
-        {open() && (
-          <Motion.div
-            class="picker__panel calendar-picker__panel"
-            role="dialog"
-            aria-label="Choose calendar"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 0.18,
-            }}
-          >
-            <For each={props.calendars}>
-              {(calendar) => (
-                <button
-                  type="button"
-                  class="picker__option"
-                  data-selected={calendar.id === props.value}
-                  aria-pressed={calendar.id === props.value}
-                  onClick={() => {
-                    props.onChange(calendar.id);
-                    setOpen(false);
-                    trigger.focus();
-                  }}
-                >
-                  <span
-                    class="calendar-picker__swatch"
-                    style={{ "background-color": calendar.color }}
-                    aria-hidden="true"
-                  />
-                  <span>{calendar.label}</span>
-                </button>
-              )}
-            </For>
-          </Motion.div>
-        )}
-      </Presence>
+      <Show when={open()}>
+        <Dropdown class="calendar-picker__panel" role="dialog" aria-label="Choose calendar">
+          <For each={props.calendars}>
+            {(calendar) => (
+              <DropdownButton
+                aria-pressed={calendar.id === props.value}
+                onClick={() => {
+                  props.onChange(calendar.id);
+                  setOpen(false);
+                  trigger.focus();
+                }}
+              >
+                <span
+                  class="calendar-picker__swatch"
+                  style={{ "background-color": calendar.color }}
+                  aria-hidden="true"
+                />
+                <span>{calendar.label}</span>
+              </DropdownButton>
+            )}
+          </For>
+        </Dropdown>
+      </Show>
     </div>
   );
 }

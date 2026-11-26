@@ -1,17 +1,12 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
-import { type CalendarCommandResult, type DayItems } from "../../shared/calendar/calendar-model";
-import type { CalendarDay } from "../../shared/calendar/calendar-view";
-import type {
-  CalendarItem,
-  DateKey,
-  ItemId,
-  MinuteOfDay,
-} from "../../shared/calendar/calendar-item";
-import type { DragSession, ItemPointerEvent } from "../../shared/drag/drag-types";
-import { previewScheduledItem } from "../../shared/drag/drag-preview";
+import { createRenderEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { type CalendarCommandResult, type DayItems } from "../../shared/calendar/model";
+import type { CalendarDay } from "../../shared/calendar/view";
+import type { DateKey, ItemId, MinuteOfDay } from "../../shared/calendar/calendar-item";
+import type { DragController } from "../../shared/drag/drag-controller";
 import { DaysHeader } from "./DaysHeader";
 import { AllDayEventsHeader } from "./AllDayEventsHeader";
 import { Timeline } from "./Timeline";
+import { animateInitialEvents, captureEventMotion } from "./event-motion";
 import "./calendar-board.css";
 import "./calendar-event.css";
 
@@ -20,28 +15,43 @@ export function CalendarBoard(props: {
   itemsByDate: ReadonlyMap<DateKey, DayItems>;
   hourHeight: number;
   onHourHeightChange(height: number): void;
-  todayKey: DateKey;
   currentMinute: MinuteOfDay;
-  currentTimeLabel: string;
-  dragSession: DragSession;
-  draggedItem: CalendarItem | undefined;
+  drag: DragController;
+  dropRevision: number;
   onEmptySlotClick(date: DateKey, startMinute: MinuteOfDay): void;
   onAllDaySlotClick(date: DateKey): void;
   onHorizontalWheel(delta: number): void;
   onResizeItem(itemId: ItemId, endMinute: MinuteOfDay): Promise<CalendarCommandResult>;
-  onItemPointerDown(itemId: ItemId, event: ItemPointerEvent): void;
-  onItemPointerMove(event: PointerEvent): void;
-  onItemPointerUp(event: PointerEvent): void;
-  onItemPointerCancel(): void;
-  onOpenItem(itemId: ItemId): void;
 }) {
   let board!: HTMLElement;
-  const [entering, setEntering] = createSignal(true);
+  let updateHeight: (() => void) | undefined;
+  let pendingMotion: (() => void) | undefined;
+  let lastDrop = props.dropRevision;
+  const [itemsByDate, setItemsByDate] = createSignal(props.itemsByDate);
+  createRenderEffect(() => {
+    const items = props.itemsByDate;
+    const drop = props.dropRevision;
+    // Capture before updating the keyed cards, then animate their committed layout.
+    if (drop !== lastDrop) {
+      lastDrop = drop;
+      pendingMotion = undefined;
+    } else if (board?.isConnected && !pendingMotion) {
+      pendingMotion = captureEventMotion(board);
+      if (pendingMotion) {
+        queueMicrotask(() => {
+          if (board.isConnected) updateHeight?.();
+          pendingMotion?.();
+          pendingMotion = undefined;
+        });
+      }
+    }
+    setItemsByDate(items);
+  });
   onMount(() => {
     const container = board.parentElement!;
     const header = board.querySelector<HTMLElement>(".calendar-board__header")!;
     const allDay = board.querySelector<HTMLElement>(".calendar-board__all-day")!;
-    const updateHeight = () =>
+    updateHeight = () =>
       props.onHourHeightChange(
         Math.max(1, (container.clientHeight - header.offsetHeight - allDay.offsetHeight) / 8),
       );
@@ -50,29 +60,26 @@ export function CalendarBoard(props: {
     observer.observe(header);
     observer.observe(allDay);
     updateHeight();
+    animateInitialEvents(board);
     onCleanup(() => observer.disconnect());
-    const timer = window.setTimeout(() => setEntering(false), 1000);
     requestAnimationFrame(() => {
       container.scrollTop = props.hourHeight * 9;
     });
-    onCleanup(() => window.clearTimeout(timer));
   });
-  const bucketFor = (date: DateKey) => props.itemsByDate.get(date) ?? { timed: [], allDay: [] };
+  const bucketFor = (date: DateKey) => itemsByDate().get(date) ?? { timed: [], allDay: [] };
   const gridStyle = () => ({ "--calendar-day-count": props.days.length });
   const timedGridStyle = () => ({
     ...gridStyle(),
     "--calendar-hour-height": `${props.hourHeight}px`,
   });
-  const preview = () => previewScheduledItem(props.draggedItem, props.dragSession);
   const previewFor = (date: DateKey, type: "timed" | "all-day") => {
-    const item = preview();
+    const item = props.drag.preview();
     return item?.placement.type === type && item.placement.date === date ? item : null;
   };
   return (
     <section
       class="calendar-board"
       data-testid="calendar-board"
-      data-event-entry={entering() ? "true" : undefined}
       ref={board}
       onWheel={(event) => {
         const delta =
@@ -83,7 +90,6 @@ export function CalendarBoard(props: {
               : 0;
         if (delta) {
           event.preventDefault();
-          setEntering(false);
           props.onHorizontalWheel(delta);
         }
       }}
@@ -101,32 +107,20 @@ export function CalendarBoard(props: {
         bucketFor={bucketFor}
         style={gridStyle()}
         previewFor={(date) => previewFor(date, "all-day")}
-        dragSession={props.dragSession}
+        drag={props.drag}
         hourHeight={props.hourHeight}
         onEmptyCellClick={props.onAllDaySlotClick}
-        onItemPointerDown={props.onItemPointerDown}
-        onItemPointerMove={props.onItemPointerMove}
-        onItemPointerUp={props.onItemPointerUp}
-        onItemPointerCancel={props.onItemPointerCancel}
-        onOpenItem={props.onOpenItem}
       />
       <Timeline
         days={props.days}
         bucketFor={bucketFor}
         style={timedGridStyle()}
         hourHeight={props.hourHeight}
-        todayKey={props.todayKey}
         currentMinute={props.currentMinute}
-        currentTimeLabel={props.currentTimeLabel}
         previewFor={(date) => previewFor(date, "timed")}
-        dragSession={props.dragSession}
+        drag={props.drag}
         onEmptySlotClick={props.onEmptySlotClick}
         onResizeItem={props.onResizeItem}
-        onItemPointerDown={props.onItemPointerDown}
-        onItemPointerMove={props.onItemPointerMove}
-        onItemPointerUp={props.onItemPointerUp}
-        onItemPointerCancel={props.onItemPointerCancel}
-        onOpenItem={props.onOpenItem}
       />
     </section>
   );

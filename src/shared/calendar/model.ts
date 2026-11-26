@@ -9,12 +9,13 @@ import {
   type CalendarItem,
   type DateKey,
   type ItemId,
-  type ScheduledItem,
 } from "./calendar-item";
 import { clampTimeRange } from "./date-time";
-import type {
-  CalendarItemRepository,
-  CalendarRepositoryError,
+import {
+  CalendarSessionExpiredError,
+  type CalendarItemRepository,
+  type CalendarItemWrite,
+  type CalendarRepositoryError,
 } from "../data/calendar-item-repository";
 import type { CalendarCommand } from "./commands";
 import type { EditorChange, EditorError, EditorSession } from "./editor";
@@ -39,8 +40,8 @@ export type CalendarModelDependencies = Readonly<{
   createId(): ItemId;
 }>;
 export type DayItems = Readonly<{
-  timed: readonly ScheduledItem[];
-  allDay: readonly ScheduledItem[];
+  timed: readonly CalendarItem[];
+  allDay: readonly CalendarItem[];
 }>;
 export type CalendarModel = Readonly<{
   loadState: Accessor<CalendarLoadState>;
@@ -49,9 +50,12 @@ export type CalendarModel = Readonly<{
   visibleItemsByDate: Accessor<ReadonlyMap<DateKey, DayItems>>;
   calendarVisibility: Accessor<CalendarVisibility>;
   editorSession: Accessor<EditorSession>;
+  canRestoreDraft: Accessor<boolean>;
   canUndoDeletion: Accessor<boolean>;
+  restoreFailedDraft(): void;
   initialize(): Promise<CalendarCommandResult>;
   retryLoad(): Promise<CalendarCommandResult>;
+  refresh(): Promise<CalendarCommandResult>;
   dispatch(command: CalendarCommand): Promise<CalendarCommandResult>;
 }>;
 
@@ -63,23 +67,35 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
     createDefaultCalendarVisibility(),
   );
   const [editorSession, setEditorSession] = createSignal<EditorSession>(null);
+  const [failedDrafts, setFailedDrafts] = createSignal<readonly NonNullable<EditorSession>[]>([]);
   const [deletedItems, setDeletedItems] = createSignal<
     readonly { item: CalendarItem; index: number }[]
   >([]);
   let writeQueue = Promise.resolve<CalendarCommandResult>({ ok: true });
-  let pendingWrites = 0;
   let initializing: Promise<CalendarCommandResult> | null = null;
+  let refreshQueued: Promise<CalendarCommandResult> | null = null;
+  let refreshPending = false;
+  let confirmedItems: readonly CalendarItem[] = [];
+  let editorRevision = 0;
+  type PrepareChange = (
+    current: readonly CalendarItem[],
+  ) => { items: readonly CalendarItem[]; write: CalendarItemWrite; commit?(): void } | null;
+  const pendingChanges: PrepareChange[] = [];
+  const publishItems = () =>
+    setItems(
+      pendingChanges.reduce(
+        (current, prepare) => prepare(current)?.items ?? current,
+        confirmedItems,
+      ),
+    );
   const visibleItemsByDate = () => {
-    const result = new Map<DateKey, DayItems>();
+    const result = new Map<DateKey, { timed: CalendarItem[]; allDay: CalendarItem[] }>();
     for (const item of items()) {
       if (!visibility()[item.calendarId]) continue;
       const date = item.placement.date;
-      const existing = result.get(date);
-      const bucket: { timed: ScheduledItem[]; allDay: ScheduledItem[] } = existing
-        ? { timed: [...existing.timed], allDay: [...existing.allDay] }
-        : { timed: [], allDay: [] };
-      if (item.placement.type === "timed") bucket.timed = [...bucket.timed, item];
-      else bucket.allDay = [...bucket.allDay, item];
+      const bucket = result.get(date) ?? { timed: [], allDay: [] };
+      if (item.placement.type === "timed") bucket.timed.push(item);
+      else bucket.allDay.push(item);
       result.set(date, bucket);
     }
     return result;
@@ -94,7 +110,8 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
         setLoadState({ phase: "error", error: result.error });
         return { ok: false, error: result.error } as const;
       }
-      setItems(result.value);
+      confirmedItems = result.value;
+      publishItems();
       setLoadState({ phase: "ready" });
       return { ok: true } as const;
     });
@@ -102,23 +119,22 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
   };
   const persist = (
     command: CalendarCommand,
-    prepare: (
-      current: readonly CalendarItem[],
-    ) => { items: readonly CalendarItem[]; commit?(): void } | null,
+    prepare: PrepareChange,
   ): Promise<CalendarCommandResult> => {
-    pendingWrites += 1;
+    pendingChanges.push(prepare);
+    publishItems();
     setMutationState({ phase: "saving", command: command.type });
     const action = async (): Promise<CalendarCommandResult> => {
       setMutationState({ phase: "saving", command: command.type });
       try {
-        const change = prepare(items());
+        const change = prepare(confirmedItems);
         if (!change) return { ok: false, error: "item-not-found" };
-        const result = await dependencies.repository.saveAll(change.items);
+        const result = await dependencies.repository.write(change.write);
         if (!result.ok) {
           setMutationState({ phase: "error", command: command.type, error: result.error });
           return { ok: false, error: result.error };
         }
-        setItems(change.items);
+        confirmedItems = change.items;
         change.commit?.();
         return { ok: true };
       } catch (cause) {
@@ -130,13 +146,47 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
         setMutationState({ phase: "error", command: command.type, error });
         return { ok: false, error };
       } finally {
-        pendingWrites -= 1;
-        if (!pendingWrites && mutationState().phase === "saving")
+        pendingChanges.splice(pendingChanges.indexOf(prepare), 1);
+        publishItems();
+        if (!pendingChanges.length && mutationState().phase === "saving")
           setMutationState({ phase: "idle" });
       }
     };
     const next = writeQueue.then(action, action);
     writeQueue = next;
+    return next;
+  };
+  const refresh = (): Promise<CalendarCommandResult> => {
+    refreshPending = true;
+    if (refreshQueued) return refreshQueued;
+    const action = async (): Promise<CalendarCommandResult> => {
+      if (initializing) await initializing;
+      let outcome: CalendarCommandResult = { ok: true };
+      do {
+        refreshPending = false;
+        const result = await dependencies.repository.loadAll();
+        if (result.ok) {
+          confirmedItems = result.value;
+          publishItems();
+          setLoadState({ phase: "ready" });
+          outcome = { ok: true };
+        } else {
+          if (
+            loadState().phase !== "ready" ||
+            result.error.cause instanceof CalendarSessionExpiredError
+          )
+            setLoadState({ phase: "error", error: result.error });
+          outcome = { ok: false, error: result.error };
+        }
+      } while (refreshPending);
+      return outcome;
+    };
+    const next = writeQueue.then(action, action);
+    writeQueue = next;
+    refreshQueued = next;
+    void next.finally(() => {
+      refreshQueued = null;
+    });
     return next;
   };
   const dispatch = async (command: CalendarCommand): Promise<CalendarCommandResult> => {
@@ -161,9 +211,13 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
             command.type === "item.move"
               ? moveItem(item, command.target)
               : resizeTimedItem(item, command.endMinute);
-          return { items: current.map((value) => (value.id === item.id ? updated : value)) };
+          return {
+            items: current.map((value) => (value.id === item.id ? updated : value)),
+            write: { type: "save", item: updated, previous: item },
+          };
         });
       case "editor.open-create": {
+        editorRevision += 1;
         const timed = createTimedEvent({
           id: dependencies.createId(),
           title: "",
@@ -183,6 +237,7 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
       case "editor.open-item": {
         const item = items().find((value) => value.id === command.itemId);
         if (!item) return { ok: false, error: "item-not-found" };
+        editorRevision += 1;
         setEditorSession({
           mode: "edit",
           originalId: item.id,
@@ -195,6 +250,7 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
       case "editor.change":
         return changeEditor(command.change);
       case "editor.cancel":
+        editorRevision += 1;
         setEditorSession(null);
         return { ok: true };
       case "editor.delete":
@@ -245,14 +301,41 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
       return Promise.resolve({ ok: false, error: "invalid-time-range" });
     }
     const draft = { ...session.draft, title: session.draft.title.trim() };
-    return persist(command, (current) => ({
-      items: current.some((item) => item.id === draft.id)
-        ? current.map((item) => (item.id === draft.id ? draft : item))
-        : [...current, draft],
-      commit() {
-        if (editorSession() === session) setEditorSession(null);
-      },
-    }));
+    const revision = editorRevision;
+    setEditorSession(null);
+    return persist(command, (current) => {
+      const previous = current.find((item) => item.id === draft.id) ?? null;
+      if (session.mode === "edit" && !previous) return null;
+      return {
+        items: previous
+          ? current.map((item) => (item.id === draft.id ? draft : item))
+          : [...current, draft],
+        write: { type: "save", item: draft, previous },
+      };
+    }).then((result) => {
+      const otherDrafts = failedDrafts().filter((failed) => failed.draft.id !== draft.id);
+      if (result.ok) {
+        setFailedDrafts(otherDrafts);
+      } else {
+        const failed =
+          result.error === "item-not-found" ? { ...session, error: result.error } : session;
+        if (editorRevision === revision && editorSession() === null) {
+          setFailedDrafts(otherDrafts);
+          setEditorSession(failed);
+        } else {
+          setFailedDrafts([...otherDrafts, failed]);
+        }
+      }
+      return result;
+    });
+  }
+  function restoreFailedDraft() {
+    if (editorSession()) return;
+    const failed = failedDrafts().at(-1);
+    if (!failed) return;
+    editorRevision += 1;
+    setFailedDrafts((drafts) => drafts.slice(0, -1));
+    setEditorSession(failed);
   }
   function deleteEditor(command: CalendarCommand): Promise<CalendarCommandResult> {
     const session = editorSession();
@@ -263,7 +346,8 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
       if (index < 0) return null;
       const deleted = current[index];
       return {
-        items: current.filter((item) => item.id !== session.originalId),
+        items: current.filter((item) => item.id !== deleted.id),
+        write: { type: "delete", id: deleted.id },
         commit() {
           setDeletedItems((previous) => [...previous, { item: deleted, index }]);
           if (editorSession() === session) setEditorSession(null);
@@ -279,6 +363,7 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
       nextItems.splice(Math.min(deleted.index, nextItems.length), 0, deleted.item);
       return {
         items: nextItems,
+        write: { type: "save", item: deleted.item, previous: null },
         commit() {
           setDeletedItems((previous) => previous.slice(0, -1));
         },
@@ -292,9 +377,12 @@ export function createCalendarModel(dependencies: CalendarModelDependencies): Ca
     visibleItemsByDate,
     calendarVisibility: visibility,
     editorSession,
+    canRestoreDraft: () => editorSession() === null && failedDrafts().length > 0,
     canUndoDeletion: () => deletedItems().length > 0,
+    restoreFailedDraft,
     initialize,
     retryLoad: initialize,
+    refresh,
     dispatch,
   };
 }

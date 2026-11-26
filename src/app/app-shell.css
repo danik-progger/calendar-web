@@ -4,13 +4,13 @@
   height: 100dvh;
   overflow: hidden;
   background: var(--surface);
-  color: var(--ink);
+  color: var(--text-strong);
 }
 .app-shell__toolbar {
   position: relative;
   flex: 0 0 var(--toolbar-height);
   z-index: 20;
-  background: #fff;
+  background: var(--surface);
 }
 .app-shell__content {
   min-width: 0;

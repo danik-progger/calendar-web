@@ -11,21 +11,16 @@ export type TimedPlacement = Readonly<{
   endMinute: MinuteOfDay;
 }>;
 export type AllDayPlacement = Readonly<{ type: "all-day"; date: DateKey }>;
-export type ItemCore = Readonly<{
+export type CalendarItem = Readonly<{
   id: ItemId;
   title: string;
   calendarId: CalendarId;
   notes: string;
   durationMinute?: number;
+  type: "event";
+  presentation: "standard" | "focus" | "call";
+  placement: TimedPlacement | AllDayPlacement;
 }>;
-export type ScheduledEvent = ItemCore &
-  Readonly<{
-    type: "event";
-    presentation: "standard" | "focus" | "call";
-    placement: TimedPlacement | AllDayPlacement;
-  }>;
-export type CalendarItem = ScheduledEvent;
-export type ScheduledItem = ScheduledEvent;
 export type PlacementTarget =
   | { type: "timed"; date: DateKey; startMinute: MinuteOfDay }
   | { type: "all-day"; date: DateKey };
@@ -42,9 +37,9 @@ export function createTimedEvent(input: {
   date: DateKey;
   startMinute: number;
   durationMinute?: number;
-  presentation?: ScheduledEvent["presentation"];
+  presentation?: CalendarItem["presentation"];
   notes?: string;
-}): ScheduledEvent {
+}): CalendarItem {
   const range = clampTimeRange(
     input.startMinute,
     input.startMinute + (input.durationMinute ?? DEFAULT_DURATION_MINUTES),
@@ -61,13 +56,14 @@ export function createTimedEvent(input: {
 }
 export function moveItem(item: CalendarItem, target: PlacementTarget): CalendarItem {
   const durationMinute = durationOf(item);
-  const placement =
+  const placement: CalendarItem["placement"] =
     target.type === "all-day"
-      ? ({ type: "all-day", date: target.date } as const)
-      : (() => {
-          const range = clampTimeRange(target.startMinute, target.startMinute + durationMinute);
-          return { type: "timed", date: target.date, ...range } as const;
-        })();
+      ? { type: "all-day", date: target.date }
+      : {
+          type: "timed",
+          date: target.date,
+          ...clampTimeRange(target.startMinute, target.startMinute + durationMinute),
+        };
   return { ...item, durationMinute, placement };
 }
 export function resizeTimedItem(item: CalendarItem, endMinute: number): CalendarItem {

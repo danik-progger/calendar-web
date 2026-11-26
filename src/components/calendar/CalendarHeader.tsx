@@ -1,12 +1,12 @@
 import { AnimatedIcon } from "../icons/AnimatedIcon";
 import { ChevronLeft, ChevronRight } from "@animateicons/vanilla/lucide";
-import type { ViewMode } from "../../shared/calendar/calendar-view";
+import type { ViewMode } from "../../shared/calendar/view";
 import { AccountDropdown } from "./AccountDropdown";
 import "./calendar-header.css";
 
 export function CalendarHeader(props: {
-  email?: string;
-  onLogout?: () => Promise<void>;
+  email: string;
+  onLogout: () => Promise<void>;
   mode: ViewMode;
   isMobile: boolean;
   monthLabel: string;
@@ -64,9 +64,7 @@ export function CalendarHeader(props: {
             </button>
           </div>
         )}
-        {(props.isMobile || (props.email && props.onLogout)) && (
-          <AccountDropdown email={props.email} onLogout={props.onLogout} />
-        )}
+        <AccountDropdown email={props.email} onLogout={props.onLogout} />
       </div>
     </header>
   );

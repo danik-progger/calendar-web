@@ -1,31 +1,27 @@
 import { createSignal, Show } from "solid-js";
-import type { CalendarCommandResult } from "../../shared/calendar/calendar-model";
-import type { ItemId, ScheduledItem, TimedPlacement } from "../../shared/calendar/calendar-item";
+import type { CalendarCommandResult } from "../../shared/calendar/model";
+import type { ItemId, CalendarItem, TimedPlacement } from "../../shared/calendar/calendar-item";
 import { calendarById } from "../../shared/calendar/calendars";
 import { formatTimeRange, minuteToPixel } from "../../shared/calendar/date-time";
 import { resolveTimedResizeEndMinute } from "../../shared/drag/drag-geometry";
-import type { ItemPointerEvent } from "../../shared/drag/drag-types";
+import type { DragController } from "../../shared/drag/drag-controller";
+import { timedCardHeight, type EventColumn } from "./timed-event-layout";
 
 export function CalendarEvent(props: {
-  item: ScheduledItem;
+  item: CalendarItem;
   allDay?: boolean;
-  dragging?: boolean;
+  drag?: DragController;
   preview?: boolean;
-  exiting?: boolean;
+  column?: EventColumn;
   hourHeight: number;
-  onOpen(): void;
   onResizeEnd?(itemId: ItemId, endMinute: number): Promise<CalendarCommandResult>;
-  onPointerDown(itemId: ItemId, event: ItemPointerEvent): void;
-  onPointerMove(event: PointerEvent): void;
-  onPointerUp(event: PointerEvent): void;
-  onPointerCancel(): void;
 }) {
   const item = () => props.item;
   const calendar = () => calendarById(item().calendarId);
-  const animationSeed = [...item().id].reduce(
-    (seed, character) => Math.imul(seed, 31) + character.charCodeAt(0),
-    0,
-  );
+  const dragging = () => {
+    const session = props.drag?.session();
+    return session?.phase === "dragging" && session.itemId === item().id;
+  };
   const timed = () =>
     item().placement.type === "timed" ? (item().placement as TimedPlacement) : null;
   const [resizeEnd, setResizeEnd] = createSignal<number | null>(null);
@@ -46,37 +42,39 @@ export function CalendarEvent(props: {
       class="event-card"
       data-testid="calendar-event"
       data-event-id={item().id}
-      data-dragging={props.dragging ? "true" : undefined}
+      data-dragging={dragging() ? "true" : undefined}
       data-drop-preview={props.preview ? "true" : undefined}
-      data-exiting={props.exiting ? "true" : undefined}
-      aria-hidden={props.exiting || undefined}
-      inert={props.exiting}
+      data-all-day={props.allDay ? "true" : undefined}
+      aria-hidden={props.preview || undefined}
+      inert={props.preview}
       data-compact={compactTimed() ? "true" : undefined}
       data-resizing={resizeEnd() !== null ? "true" : undefined}
       style={{
         "--event-color": calendar().color,
-        "--event-enter-delay": `${40 + Math.abs(animationSeed % 240)}ms`,
-        "--event-enter-duration": `${360 + Math.abs((animationSeed * 97) % 260)}ms`,
-        top: timed() ? `${minuteToPixel(timed()!.startMinute, props.hourHeight)}px` : undefined,
-        height: timed()
-          ? `${Math.max(minuteToPixel(duration(), props.hourHeight), compactTimed() ? 24 : 38) - 3}px`
+        "--event-column-offset": props.column
+          ? `${(props.column.index / props.column.count) * 100}%`
           : undefined,
+        "--event-column-width": props.column ? `${100 / props.column.count}%` : undefined,
+        top: timed() ? `${minuteToPixel(timed()!.startMinute, props.hourHeight)}px` : undefined,
+        height: timed() ? `${timedCardHeight(duration(), props.hourHeight)}px` : undefined,
       }}
-      onPointerDown={(event) => props.onPointerDown(item().id, event as ItemPointerEvent)}
-      onPointerMove={props.onPointerMove}
-      onPointerUp={props.onPointerUp}
-      onPointerCancel={props.onPointerCancel}
+      onPointerDown={(event) => props.drag?.pointerDown(item().id, event)}
+      onPointerMove={props.drag?.pointerMove}
+      onPointerUp={props.drag?.pointerUp}
+      onPointerCancel={props.drag?.cancel}
       onClick={(event) => {
         // The drag controller handles pointer clicks, including release after a move.
-        if (event.detail === 0) props.onOpen();
+        if (event.detail === 0) props.drag?.openItem(item().id);
       }}
     >
-      <div class="event-card__title">{item().title}</div>
-      <Show when={timed() && !compactTimed()}>
-        <span class="event-card__time">
-          {formatTimeRange(timed()!.startMinute, displayedEnd())}
-        </span>
-      </Show>
+      <div class="event-card__copy">
+        <div class="event-card__title">{item().title}</div>
+        <Show when={timed() && !compactTimed()}>
+          <span class="event-card__time">
+            {formatTimeRange(timed()!.startMinute, displayedEnd())}
+          </span>
+        </Show>
+      </div>
       <Show when={timed() && !props.preview}>
         <button
           type="button"

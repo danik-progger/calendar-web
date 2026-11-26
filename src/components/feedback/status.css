@@ -3,11 +3,11 @@
   display: grid;
   place-items: center;
   gap: 12px;
-  color: var(--muted);
+  color: var(--text-secondary);
 }
 .calendar-status button {
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 0;
+  background: var(--hover);
   border-radius: 8px;
   padding: 8px 14px;
 }
@@ -21,31 +21,10 @@
   align-items: center;
   gap: 24px;
   padding: 10px 12px 10px 16px;
-  border: 1px solid #e3e4e7;
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 24px #20273324;
-  color: #303744;
+  background: var(--surface);
+  box-shadow: 0 8px 24px var(--event-shadow);
+  color: var(--text-strong);
   font-size: 13px;
   font-weight: 500;
-}
-.deletion-notice button {
-  border: 0;
-  border-radius: 5px;
-  padding: 5px 8px;
-  background: transparent;
-  color: #42538e;
-  font-weight: 600;
-  cursor: pointer;
-}
-.deletion-notice button:hover {
-  background: #f1f2f5;
-}
-.deletion-notice button:focus-visible {
-  outline: 2px solid #42538e;
-  outline-offset: 2px;
-}
-.deletion-notice button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }

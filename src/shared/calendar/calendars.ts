@@ -1,8 +1,8 @@
 export const CALENDARS = [
-  { id: "birthdays", label: "Birthdays", color: "#f2ad3d" },
-  { id: "personal", label: "Personal", color: "#e86bb5" },
-  { id: "work", label: "Work", color: "#7283db" },
-  { id: "health", label: "Health", color: "#42beb9" },
+  { id: "birthdays", label: "Birthdays", color: "var(--calendar-birthdays)" },
+  { id: "personal", label: "Personal", color: "var(--calendar-personal)" },
+  { id: "work", label: "Work", color: "var(--calendar-work)" },
+  { id: "health", label: "Health", color: "var(--calendar-health)" },
 ] as const;
 export type CalendarId = (typeof CALENDARS)[number]["id"];
 export type CalendarDefinition = Readonly<{ id: CalendarId; label: string; color: string }>;

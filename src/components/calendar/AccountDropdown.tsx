@@ -1,14 +1,14 @@
 import { LogOut, Mail, UserRound } from "@animateicons/vanilla/lucide";
 import { createSignal, Show } from "solid-js";
+import { Dropdown, DropdownButton } from "../dropdown/Dropdown";
 import { AnimatedIcon } from "../icons/AnimatedIcon";
 import "./account-dropdown.css";
 
-export function AccountDropdown(props: { email?: string; onLogout?(): Promise<void> }) {
+export function AccountDropdown(props: { email: string; onLogout(): Promise<void> }) {
   const [pending, setPending] = createSignal(false);
   const [failed, setFailed] = createSignal(false);
 
   async function logOut() {
-    if (!props.onLogout) return;
     setPending(true);
     setFailed(false);
     try {
@@ -29,33 +29,25 @@ export function AccountDropdown(props: { email?: string; onLogout?(): Promise<vo
       >
         <AnimatedIcon icon={UserRound} size={17} />
       </button>
-      <div id="account-dropdown" class="account-dropdown" popover="auto">
+      <Dropdown id="account-dropdown" class="account-dropdown" popover="auto">
         <ul class="account-dropdown__list" role="list">
-          <li class="account-dropdown__row">
+          <li class="dropdown__row">
             <AnimatedIcon icon={Mail} size={16} />
-            <span>{props.email ?? "Demo calendar"}</span>
+            <span>{props.email}</span>
           </li>
-          <Show when={props.onLogout}>
-            <li>
-              <button
-                type="button"
-                class="account-dropdown__row"
-                autofocus
-                disabled={pending()}
-                onClick={() => void logOut()}
-              >
-                <AnimatedIcon icon={LogOut} size={16} />
-                Log out
-              </button>
-            </li>
-          </Show>
+          <li>
+            <DropdownButton disabled={pending()} onClick={() => void logOut()}>
+              <AnimatedIcon icon={LogOut} size={16} />
+              <span>Log out</span>
+            </DropdownButton>
+          </li>
         </ul>
         <Show when={failed()}>
-          <p class="account-dropdown__row" role="alert">
-            Couldn’t log out. Try again.
+          <p class="dropdown__row" role="alert">
+            <span class="error-message">Couldn’t log out. Try again.</span>
           </p>
         </Show>
-      </div>
+      </Dropdown>
     </>
   );
 }

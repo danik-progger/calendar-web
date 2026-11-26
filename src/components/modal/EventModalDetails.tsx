@@ -5,7 +5,7 @@ import { DatePicker } from "./DatePicker";
 import { TimePicker } from "./TimePicker";
 import { Show } from "solid-js";
 import type { CalendarItem, TimedPlacement } from "../../shared/calendar/calendar-item";
-import type { EditorChange } from "../../shared/calendar/calendar-model";
+import type { EditorChange } from "../../shared/calendar/editor";
 import { minuteFromTimeInput, timeInputFromMinute } from "../../shared/calendar/date-time";
 
 const roundedSquare = {

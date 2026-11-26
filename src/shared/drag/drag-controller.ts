@@ -1,49 +1,38 @@
-import { createSignal, type Accessor } from "solid-js";
-import type { CalendarCommandResult } from "../calendar/calendar-model";
-import type { ItemId } from "../calendar/calendar-item";
+import { createMemo, createSignal } from "solid-js";
+import {
+  moveItem,
+  type CalendarItem,
+  type ItemId,
+  type PlacementTarget,
+} from "../calendar/calendar-item";
 import type { DropTargetResolver } from "./drop-target";
 import type { DragSession, ItemPointerEvent } from "./drag-types";
 import { grabOffsetMinute } from "./drag-geometry";
-export type DragControllerDependencies = Readonly<{
-  getItem(itemId: ItemId): import("../calendar/calendar-item").CalendarItem | undefined;
-  moveItem(
-    itemId: ItemId,
-    target: import("../calendar/calendar-item").PlacementTarget,
-  ): Promise<CalendarCommandResult>;
+type DragControllerDependencies = Readonly<{
+  getItem(itemId: ItemId): CalendarItem | undefined;
+  moveItem(itemId: ItemId, target: PlacementTarget): void;
   resolveDropTarget: DropTargetResolver;
   getHourHeight(): number;
   openItem(itemId: ItemId): void;
 }>;
-export type DragController = Readonly<{
-  session: Accessor<DragSession>;
-  pointerDown(itemId: ItemId, event: ItemPointerEvent): void;
-  pointerMove(event: PointerEvent): void;
-  pointerUp(event: PointerEvent): void;
-  pointerCancel(): void;
-  lostPointerCapture(): void;
-  escape(): void;
-  dispose(): void;
-}>;
-export function createDragController(dependencies: DragControllerDependencies): DragController {
+export type DragController = ReturnType<typeof createDragController>;
+
+export function createDragController(dependencies: DragControllerDependencies) {
   const [session, setSession] = createSignal<DragSession>({ phase: "idle" });
-  const finish = (_event: PointerEvent | null, commit: boolean) => {
+  const preview = createMemo(() => {
     const current = session();
-    if (current.phase === "pending") {
-      if (commit) dependencies.openItem(current.itemId);
-      setSession({ phase: "idle" });
-      return;
-    }
-    if (current.phase !== "dragging") {
-      setSession({ phase: "idle" });
-      return;
-    }
-    const target = current.target;
+    if (current.phase !== "dragging" || !current.target) return null;
+    const item = dependencies.getItem(current.itemId);
+    return item ? moveItem(item, current.target) : null;
+  });
+  const cancel = () => {
     setSession({ phase: "idle" });
-    if (commit && target) void dependencies.moveItem(current.itemId, target);
   };
   return {
     session,
-    pointerDown(itemId, event) {
+    preview,
+    openItem: dependencies.openItem,
+    pointerDown(itemId: ItemId, event: ItemPointerEvent) {
       if (
         event.button !== 0 ||
         (event.target instanceof Element && event.target.closest("input,button,textarea,select"))
@@ -69,62 +58,33 @@ export function createDragController(dependencies: DragControllerDependencies): 
         grabOffsetMinute: grabOffset,
       });
     },
-    pointerMove(event) {
+    pointerMove(event: PointerEvent) {
       const current = session();
       if (current.phase === "idle" || current.pointerId !== event.pointerId) return;
-      if (current.phase === "pending") {
-        if (
-          Math.hypot(
-            event.clientX - current.origin.clientX,
-            event.clientY - current.origin.clientY,
-          ) < 5
-        )
-          return;
-        const item = dependencies.getItem(current.itemId);
-        if (!item) return;
-        const target = dependencies.resolveDropTarget(
-          { clientX: event.clientX, clientY: event.clientY },
-          {
-            item,
-            grabOffsetMinute: current.grabOffsetMinute,
-            hourHeight: dependencies.getHourHeight(),
-          },
-        );
-        setSession({
-          phase: "dragging",
-          itemId: current.itemId,
-          pointerId: current.pointerId,
-          target,
-          grabOffsetMinute: current.grabOffsetMinute,
-        });
-      } else {
-        const item = dependencies.getItem(current.itemId);
-        if (!item) return;
-        const target = dependencies.resolveDropTarget(
-          { clientX: event.clientX, clientY: event.clientY },
-          {
-            item,
-            grabOffsetMinute: current.grabOffsetMinute,
-            hourHeight: dependencies.getHourHeight(),
-          },
-        );
-        setSession({ ...current, target });
-      }
+      if (
+        current.phase === "pending" &&
+        Math.hypot(event.clientX - current.origin.clientX, event.clientY - current.origin.clientY) <
+          5
+      )
+        return;
+
+      const { itemId, pointerId, grabOffsetMinute } = current;
+      const item = dependencies.getItem(itemId);
+      if (!item) return;
+      const target = dependencies.resolveDropTarget(event, {
+        item,
+        grabOffsetMinute,
+        hourHeight: dependencies.getHourHeight(),
+      });
+      setSession({ phase: "dragging", itemId, pointerId, grabOffsetMinute, target });
     },
-    pointerUp(event) {
-      finish(event, true);
+    pointerUp() {
+      const current = session();
+      if (current.phase === "pending") dependencies.openItem(current.itemId);
+      cancel();
+      if (current.phase === "dragging" && current.target)
+        dependencies.moveItem(current.itemId, current.target);
     },
-    pointerCancel() {
-      finish(null, false);
-    },
-    lostPointerCapture() {
-      finish(null, false);
-    },
-    escape() {
-      finish(null, false);
-    },
-    dispose() {
-      setSession({ phase: "idle" });
-    },
+    cancel,
   };
 }

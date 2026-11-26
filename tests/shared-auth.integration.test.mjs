@@ -64,7 +64,7 @@ test.skipIf(!base || !api || !database || !process.env.BETTER_AUTH_SECRET)(
         presentation: "focus",
         notes: "Preserve notes",
       });
-      expect((await repository.saveAll([item])).ok).toBe(true);
+      expect((await repository.write({ type: "save", item, previous: null })).ok).toBe(true);
       const events = await (await native(alice.token)).json();
       expect(events).toHaveLength(1);
       expect(events[0].metadata.calendarId).toBe("work");
@@ -91,7 +91,9 @@ test.skipIf(!base || !api || !database || !process.env.BETTER_AUTH_SECRET)(
       expect((await native(alice.token, "/api/v1/events", "POST", retry)).status).toBe(201);
       expect((await native(bob.token, "/api/v1/events", "POST", retry)).ok).toBe(false);
       const edited = { ...item, title: "Edited from web" };
-      expect((await repository.saveAll([edited])).ok).toBe(true);
+      expect((await repository.write({ type: "save", item: edited, previous: item })).ok).toBe(
+        true,
+      );
       expect((await (await native(alice.token, path)).json()).title).toBe(edited.title);
       const freshRepository = createApiCalendarItemRepository(webFetch);
       expect((await freshRepository.loadAll()).value).toEqual([edited]);
@@ -100,11 +102,13 @@ test.skipIf(!base || !api || !database || !process.env.BETTER_AUTH_SECRET)(
         durationMinute: 80,
         placement: { type: "all-day", date: "2026-11-19" },
       };
-      expect((await repository.saveAll([allDay])).ok).toBe(true);
+      expect((await repository.write({ type: "save", item: allDay, previous: edited })).ok).toBe(
+        true,
+      );
       expect((await freshRepository.loadAll()).value).toEqual([allDay]);
       expect((await fetch(`${api}/api/v1/events`)).status).toBe(401);
       expect((await fetch(`${base}/api/v1/events`)).status).toBe(404);
-      expect((await repository.saveAll([])).ok).toBe(true);
+      expect((await repository.write({ type: "delete", id: item.id })).ok).toBe(true);
       expect((await native(alice.token, path)).status).toBe(404);
       expect((await auth("sign-out", {}, { Authorization: `Bearer ${alice.token}` })).status).toBe(
         200,

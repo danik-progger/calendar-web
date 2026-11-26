@@ -1,8 +1,8 @@
 import { Motion } from "solid-motionone";
 import { onCleanup, onMount, Show } from "solid-js";
-import type { CalendarCommandResult } from "../../shared/calendar/calendar-model";
+import type { CalendarCommandResult } from "../../shared/calendar/model";
 import type { CalendarDefinition } from "../../shared/calendar/calendars";
-import type { EditorChange, EditorSession } from "../../shared/calendar/calendar-model";
+import type { EditorChange, EditorSession } from "../../shared/calendar/editor";
 import { EventModalDetails } from "./EventModalDetails";
 import { EventModalMetadata } from "./EventModalMetadata";
 import "./modal.css";
@@ -10,7 +10,6 @@ import "./modal.css";
 export function EventModal(props: {
   session: Exclude<EditorSession, null>;
   calendars: readonly CalendarDefinition[];
-  saving: boolean;
   onChange(change: EditorChange): void;
   onSave(): Promise<CalendarCommandResult>;
   onCancel(): void;
@@ -89,31 +88,37 @@ export function EventModal(props: {
         <EventModalDetails draft={draft()} onChange={props.onChange} />
         <EventModalMetadata draft={draft()} calendars={props.calendars} onChange={props.onChange} />
         <Show when={props.session.error}>
-          <p class="event-editor__error">
+          <p class="event-editor__error" role="alert">
             {props.session.error === "title-required"
               ? "Add a title to save this event."
-              : "Please check the event details."}
+              : props.session.error === "item-not-found"
+                ? "This event was deleted."
+                : "Please check the event details."}
           </p>
         </Show>
         <div class="event-editor__footer">
           <Show when={props.session.mode === "edit"}>
             <button
               type="button"
-              class="event-editor__delete"
+              class="action-button event-editor__delete"
               aria-label="Delete event"
               onClick={() => void props.onDelete()}
             >
               Delete
             </button>
           </Show>
-          <button type="button" aria-keyshortcuts="Escape" onClick={props.onCancel}>
+          <button
+            type="button"
+            class="action-button"
+            aria-keyshortcuts="Escape"
+            onClick={props.onCancel}
+          >
             Cancel
           </button>
           <button
             type="button"
-            class="event-editor__save"
+            class="action-button event-editor__save"
             aria-keyshortcuts="Enter"
-            disabled={props.saving}
             onClick={() => void props.onSave()}
           >
             Save

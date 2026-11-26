@@ -1,7 +1,7 @@
 import { CalendarPicker } from "./CalendarPicker";
 import type { CalendarDefinition } from "../../shared/calendar/calendars";
 import type { CalendarItem } from "../../shared/calendar/calendar-item";
-import type { EditorChange } from "../../shared/calendar/calendar-model";
+import type { EditorChange } from "../../shared/calendar/editor";
 
 export function EventModalMetadata(props: {
   draft: CalendarItem;

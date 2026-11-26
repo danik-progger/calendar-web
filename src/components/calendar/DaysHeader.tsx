@@ -1,7 +1,7 @@
 import { Plus } from "@animateicons/vanilla/lucide";
 import { AnimatedIcon } from "../icons/AnimatedIcon";
 import { For } from "solid-js";
-import type { CalendarDay } from "../../shared/calendar/calendar-view";
+import type { CalendarDay } from "../../shared/calendar/view";
 
 export function DaysHeader(props: {
   days: readonly CalendarDay[];

@@ -13,15 +13,15 @@ const event = (id = "event") =>
     durationMinute: 60,
   });
 async function setup(initial = [event()]) {
-  let saved = initial;
-  let save = async (items) => {
-    saved = structuredClone(items);
+  let saved;
+  let save = async (write) => {
+    saved = structuredClone(write);
     return { ok: true, value: undefined };
   };
   const model = createCalendarModel({
     repository: {
       loadAll: async () => ({ ok: true, value: initial }),
-      saveAll: (items) => save(items),
+      write: (change) => save(change),
     },
     createId: () => "new",
   });
@@ -53,7 +53,7 @@ describe("serialized calendar mutations", () => {
       startMinute: 600,
       endMinute: 690,
     });
-    expect(saved()).toEqual(model.allItems());
+    expect(saved()).toMatchObject({ type: "save", item: model.allItems()[0] });
     expect(model.mutationState()).toEqual({ phase: "idle" });
   });
 
